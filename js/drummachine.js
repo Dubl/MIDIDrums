@@ -10,6 +10,8 @@ var compressor;
 var masterGainNode;
 var effectLevelNode;
 var filterNode;
+var counter=40;
+var direction=1;
 
 // Each effect impulse response has a specific overall desired dry and wet volume.
 // For example in the telephone filter, it's necessary to make the dry volume 0 to correctly hear the effect.
@@ -29,14 +31,22 @@ var kMaxSwing = .08;
 
 var currentKit;
 
-var beatReset = {"kitIndex":0,"effectIndex":0,"tempo":100,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
+var currentArray=[];
+var incrementingTime;
+var quantizedTime;
+//var currentNode;
+
+
+var beatReset = {"kitIndex":0,"effectIndex":0,"tempo":60,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
 var beatDemo = [
-    {"kitIndex":13,"effectIndex":18,"tempo":120,"swingFactor":0,"effectMix":0.19718309859154926,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,2,0,2,2,0,0,0,0,0]},
-    {"kitIndex":4,"effectIndex":12,"tempo":100,"swingFactor":0,"effectMix":0.2,"kickPitchVal":0.46478873239436624,"snarePitchVal":0.45070422535211263,"hihatPitchVal":0.15492957746478875,"tom1PitchVal":0.7183098591549295,"tom2PitchVal":0.704225352112676,"tom3PitchVal":0.8028169014084507,"rhythm1":[2,1,0,0,0,0,0,0,2,1,2,1,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,1,1,0,2,0,0,0],"rhythm3":[0,1,2,1,0,1,2,1,0,1,2,1,0,1,2,1],"rhythm4":[0,0,0,0,0,0,2,1,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,0,0,0,0,0,2,1,2,1,0,0,0,0,0]},
-    {"kitIndex":2,"effectIndex":5,"tempo":100,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5211267605633803,"tom1PitchVal":0.23943661971830987,"tom2PitchVal":0.21126760563380287,"tom3PitchVal":0.2535211267605634,"rhythm1":[2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],"rhythm4":[1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,1,0,1,0,0,2,0,2,0,0,1,0,0,0]},
-    {"kitIndex":1,"effectIndex":4,"tempo":120,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.7887323943661972,"snarePitchVal":0.49295774647887325,"hihatPitchVal":0.5,"tom1PitchVal":0.323943661971831,"tom2PitchVal":0.3943661971830986,"tom3PitchVal":0.323943661971831,"rhythm1":[2,0,0,0,0,0,0,2,2,0,0,0,0,0,0,1],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,1,0,2,0,1,0,1,0,1,0,2,0,2,0],"rhythm4":[2,0,2,0,0,0,0,0,2,0,0,0,0,2,0,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,2,0,0,0,2,0,0,0,2,0,0,0,0,0,0]},
+    {"kitIndex":13,"effectIndex":18,"tempo":60,"swingFactor":0,"effectMix":0.19718309859154926,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,2,0,2,2,0,0,0,0,0]},
+    {"kitIndex":4,"effectIndex":12,"tempo":60,"swingFactor":0,"effectMix":0.2,"kickPitchVal":0.46478873239436624,"snarePitchVal":0.45070422535211263,"hihatPitchVal":0.15492957746478875,"tom1PitchVal":0.7183098591549295,"tom2PitchVal":0.704225352112676,"tom3PitchVal":0.8028169014084507,"rhythm1":[2,1,0,0,0,0,0,0,2,1,2,1,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,1,1,0,2,0,0,0],"rhythm3":[0,1,2,1,0,1,2,1,0,1,2,1,0,1,2,1],"rhythm4":[0,0,0,0,0,0,2,1,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,0,0,0,0,0,2,1,2,1,0,0,0,0,0]},
+    {"kitIndex":2,"effectIndex":5,"tempo":60,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5211267605633803,"tom1PitchVal":0.23943661971830987,"tom2PitchVal":0.21126760563380287,"tom3PitchVal":0.2535211267605634,"rhythm1":[2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],"rhythm4":[1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,1,0,1,0,0,2,0,2,0,0,1,0,0,0]},
+    {"kitIndex":1,"effectIndex":4,"tempo":60,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.7887323943661972,"snarePitchVal":0.49295774647887325,"hihatPitchVal":0.5,"tom1PitchVal":0.323943661971831,"tom2PitchVal":0.3943661971830986,"tom3PitchVal":0.323943661971831,"rhythm1":[2,0,0,0,0,0,0,2,2,0,0,0,0,0,0,1],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,1,0,2,0,1,0,1,0,1,0,2,0,2,0],"rhythm4":[2,0,2,0,0,0,0,0,2,0,0,0,0,2,0,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,2,0,0,0,2,0,0,0,2,0,0,0,0,0,0]},
     {"kitIndex":0,"effectIndex":1,"tempo":60,"swingFactor":0.5419847328244275,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[2,2,0,1,2,2,0,1,2,2,0,1,2,2,0,1],"rhythm2":[0,0,2,0,0,0,2,0,0,0,2,0,0,0,2,0],"rhythm3":[2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm5":[0,0,1,0,0,1,0,1,0,0,1,0,0,0,1,0],"rhythm6":[1,0,0,1,0,1,0,1,1,0,0,1,1,1,1,0]},
 ];
+
+
 
 function cloneBeat(source) {
     var beat = new Object();
@@ -76,12 +86,174 @@ var rhythmIndex = 0;
 var kMinTempo = 53;
 var kMaxTempo = 180;
 var noteTime = 0.0;
+var loopnoteTime = 0.0;
 
 var instruments = ['Kick', 'Snare', 'HiHat', 'Tom1', 'Tom2', 'Tom3'];
 
 var volumes = [0, 0.3, 1];
 
 var kitCount = 0;
+
+
+
+class NoteNode {
+	constructor(drum,spaceafter,dv=2){
+		this.drumname=drum;
+		this.spaceafter=spaceafter;
+		this._prev=0;
+		this._next=0;
+		this._end=false;
+		this._quantizedTime=0;
+		this._incrementingTime=0;
+		this._drumvolume=dv;
+	}
+	
+	get dn() {
+		return this.drumname;
+	}
+	
+	get prev() {
+		return this._prev;
+	}
+
+	set prev(newprev) {
+		this._prev = newprev;   // validation could be checked here such as only allowing non numerical values
+	}
+	
+	get next() {
+		return this._next;
+	}
+
+	set next(newnext) {
+		this._next = newnext;   // validation could be checked here such as only allowing non numerical values
+	}
+	
+	get end() {
+		return this._end;
+	}
+
+	set end(truefalse) {
+		this._end = truefalse;   // validation could be checked here such as only allowing non numerical values
+	}
+	
+	get incrementingTime() {
+		return this._incrementingTime;
+	}
+
+	set incrementingTime(truefalse) {
+		this._incrementingTime = truefalse;   // validation could be checked here such as only allowing non numerical values
+	}
+
+	get quantizedTime() {
+		return this._quantizedTime;
+	}
+
+	set quantizedTime(truefalse) {
+		this._quantizedTime = truefalse;   // validation could be checked here such as only allowing non numerical values
+	}	
+	
+	get drum() {
+		//console.log('this.drumname:'+this.drumname);
+		switch(this.drumname){
+			case 'k':
+				return currentKit.kickBuffer;
+			case 's':
+				return currentKit.snareBuffer;
+			case 'hh':
+				return currentKit.hihatBuffer;
+			case 't1':
+				return currentKit.tom1;
+			case 't2':
+				return currentKit.tom2;
+			case 't3':
+				return currentKit.tom3;				
+		
+		}
+
+	}	
+	
+	get drumvolume() {
+		return this._drumvolume;
+
+	}	
+	
+	set drumvolume(lvl) {
+		this._drumvolume=lvl;
+
+	}	
+	
+	get drumpitch() {
+		//console.log('this.drumname:'+this.drumname);
+		switch(this.drumname){
+			case 'k':
+				return kickPitch;
+			case 's':
+				return snarePitch;
+			case 'hh':
+				return hihatPitch;
+			case 't1':
+				return tom1Pitch;
+			case 't2':
+				return tom2Pitch;
+			case 't3':
+				return tom3Pitch;				
+		
+		}
+
+	}	
+	
+	
+	get noteMSlength() {
+		var secondsPerBeat = 60.0 / theBeat.tempo;
+		return (this.spaceafter*secondsPerBeat)/4;
+	}
+	
+	
+}
+
+
+function laneCreator(bt,vol=2)
+{//the argument "names" would be a two-dimensional array
+    var lane = [];
+for(var tick=0; tick<bt[0].length; tick++)
+{
+	lane.push(new NoteNode(bt[0][tick], bt[1][tick],vol));
+
+	if (tick>0)
+		{
+			lane[tick].prev=lane[tick-1];
+			lane[tick-1].next=lane[tick];
+			if (tick==bt[0].length-1)
+			{
+				lane[tick].next=lane[0];
+				lane[0].prev=lane[tick];				
+			}
+
+		}
+		
+}
+
+    return lane;
+}
+
+function timeofNode(nd) {
+	var secondsPerBeat = 60.0 / theBeat.tempo;
+	nd.spaceafter*secondsPerBeat;
+}	
+
+function timeofLane(ln){
+	var initialValue=0;
+	var ttime=ln.reduce(function(accumulator,currentValue) {
+		return accumulator+currentValue.lengthIntime;
+	},initialValue)
+  return ttime;
+}
+
+
+
+
+
+
 
 var kitName = [
     "R8",
@@ -384,7 +556,7 @@ function init() {
     // NOTE: THIS NOW RELIES ON THE MONKEYPATCH LIBRARY TO LOAD
     // IN CHROME AND SAFARI (until they release unprefixed)
     context = new AudioContext();
-
+	//console.log(' -- original currentTime:'+context.currentTime.toString());
     var finalMixNode;
     if (context.createDynamicsCompressor) {
         // Create a dynamics compressor to sweeten the overall mix.
@@ -430,7 +602,7 @@ function init() {
     updateControls();
 
     var timerWorkerBlob = new Blob([
-        "var timeoutID=0;function schedule(){timeoutID=setTimeout(function(){postMessage('schedule'); schedule();},100);} onmessage = function(e) { if (e.data == 'start') { if (!timeoutID) schedule();} else if (e.data == 'stop') {if (timeoutID) clearTimeout(timeoutID); timeoutID=0;};}"]);
+        "var timeoutID=0;console.log('    ------worker initialized');function schedule(){timeoutID=setTimeout(function(){postMessage('schedule'); schedule();},100);} onmessage = function(e) { console.log('----------onmessage in timer'); if (e.data == 'start') { if (!timeoutID) schedule();} else if (e.data == 'stop') {if (timeoutID) clearTimeout(timeoutID); timeoutID=0;};}"]);
 
     // Obtain a blob URL reference to our worker 'file'.
     var timerWorkerBlobURL = window.URL.createObjectURL(timerWorkerBlob);
@@ -531,10 +703,10 @@ function makeKitList() {
     }
 }
 
-function advanceNote() {
-    // Advance time by a 16th note...
+function realadvanceNote() {
+    // Advance time by a 16th note... noteTime increases
     var secondsPerBeat = 60.0 / theBeat.tempo;
-
+	console.log ('   -  inside advanceNote');
     rhythmIndex++;
     if (rhythmIndex == loopLength) {
         rhythmIndex = 0;
@@ -548,7 +720,17 @@ function advanceNote() {
     }
 }
 
+function advanceNote() {
+    // Advance time by a 16th note... noteTime increases
+    var secondsPerBeat = 60.0 / theBeat.tempo;
+	console.log ('   -  inside advanceNote');
+	////for each in currentArray, if one is attheBeginning, reset loopindex to zero
+    noteTime += secondsPerBeat;
+}
+
+
 function playNote(buffer, pan, x, y, z, sendGain, mainGain, playbackRate, noteTime) {
+	// calls voice.start(noteTime)  noteTime is start time of note
     // Create the note
     var voice = context.createBufferSource();
     voice.buffer = buffer;
@@ -581,16 +763,67 @@ function playNote(buffer, pan, x, y, z, sendGain, mainGain, playbackRate, noteTi
     voice.start(noteTime);
 }
 
+
+
 function schedule() {
+	//counter+=direction;
+	//if (counter % 50 === 0){
+	//	direction=direction*-1;
+	//}
+	
+	var currentTime = context.currentTime;	
+	//console.log(' -- currentTime:'+currentTime.toString()+'  --incrementingTime:'+incrementingTime.toString());
+	var newCurrentArray=[];
+	//console.log('there are '+currentArray.length.toString()+' values in currentArray');
+	for (let currentNode of currentArray){
+		//console.log('in currentArray, at '+currentTime.toString()+', incrementTime is '+currentNode.incrementingTime.toString());
+		if (currentTime>currentNode.incrementingTime){
+				//console.log('current node incrementing at '+currentNode.incrementingTime.toString()+', playing '+currentNode.dn+' at '+currentNode.quantizedTime.toString());
+					//console.log('current node drum volume:'+currentNode.drumvolume.toString());
+					playNote(currentNode.drum, false, 0,0,-2, 1, currentNode.drumvolume * 1.0, currentNode.drumpitch, currentNode.quantizedTime);
+					//incrementingTime+=currentNode.noteMSlength;
+					//quantizedTime+=currentNode.noteMSlength;
+				if (currentNode.next){
+					currentNode.next.incrementingTime=currentNode.incrementingTime+currentNode.noteMSlength;
+					currentNode.next.quantizedTime=currentNode.quantizedTime+currentNode.noteMSlength;
+					newCurrentArray.push(currentNode.next);
+				}
+				
+		}
+		else newCurrentArray.push(currentNode);
+	}
+	
+	currentArray=newCurrentArray;
+
+}
+
+
+
+function realschedule() {
+
     var currentTime = context.currentTime;
-
     // The sequence starts at startTime, so normalize currentTime so that it's 0 at the start of the sequence.
+	//// newCurrentArray=[];
+	////(const currentObject of mainObject.currentArray){
+	////    if (currentObject.endtime>currentTime+0.120){
+	////		contextPlayTime=currentObject.next.playtime+beginningofLoop;
+	////		playNote(currentObject.next.drum,false,0,0,-2,0.5,currentObject.next.volume,currentObject.next.pitch,contextPlayTime);
+	////			
+	////		newcurrentArray.push(currentObject.next);
+	////	    }
+	////    else {
+	////	  newCurrentArray.push(currentObject);
+	////	}
+	////}
+	////CurrentArray=newCurrentArray;
+	// startTime is when you hit play
     currentTime -= startTime;
-
+	console.log('schedule() called: rhythmIndex:'+rhythmIndex.toString()+' noteTime:'+noteTime.toString()+' currentTime:'+currentTime.toString());
     while (noteTime < currentTime + 0.120) {
+		console.log(' --- inside loop: rhythmIndex:'+rhythmIndex.toString()+'  noteTime:'+noteTime.toString()+' currentTime:'+currentTime.toString());
         // Convert noteTime to context time.
         var contextPlayTime = noteTime + startTime;
-        
+        //search through the object.currentview and if any values are about to be done, switch to the new one and playNote it for the right time
         // Kick
         if (theBeat.rhythm1[rhythmIndex] && instrumentActive[0]) {
             playNote(currentKit.kickBuffer, false, 0,0,-2, 0.5, volumes[theBeat.rhythm1[rhythmIndex]] * 1.0, kickPitch, contextPlayTime);
@@ -974,11 +1207,21 @@ function handleDemoMouseDown(event) {
         handlePlay();
 }
 
-function handlePlay(event) {
+function JonshandlePlay(event) {
+    //noteTime = 0.0;
+    //startTime = context.currentTime + 0.005;
+    //schedule();
+    //timerWorker.postMessage("start");
     noteTime = 0.0;
     startTime = context.currentTime + 0.005;
-    schedule();
-    timerWorker.postMessage("start");
+var contextPlayTime = noteTime + startTime;
+var contextPlayTime2 = noteTime + startTime+2;
+playNote(currentKit.snareBuffer, false, 0,0,-2, 1, volumes[theBeat.rhythm2[rhythmIndex]] * 0.6, snarePitch, contextPlayTime2);
+playNote(currentKit.kickBuffer, false, 0,0,-2, 0.5, volumes[theBeat.rhythm1[rhythmIndex]] * 1.0, kickPitch, contextPlayTime);
+contextPlayTime+=1;
+playNote(currentKit.kickBuffer, false, 0,0,-2, 0.5, volumes[theBeat.rhythm1[rhythmIndex]] * 1.0, kickPitch, contextPlayTime);
+contextPlayTime+=1;
+playNote(currentKit.kickBuffer, false, 0,0,-2, 0.5, volumes[theBeat.rhythm1[rhythmIndex]] * 1.0, kickPitch, contextPlayTime);
 
     document.getElementById('play').classList.add('playing');
     document.getElementById('stop').classList.add('playing');
@@ -990,6 +1233,55 @@ function handlePlay(event) {
     }
 }
 
+function handlePlay(event) {
+    noteTime = 0.0;
+	context.resume().then(function(){
+		startTime = Math.ceil(context.currentTime + 0.005);
+
+		
+		beat_template1=[['k','hh','k','hh'],[4,6,2,4]];
+		//beat_template2=[['t1','s','s','t1','t1','s','s','t1','t1','t1','s'],[4,2,2,4,4,2,2,4,4,2,2]];
+		beat_template2=[['t1','s','s','t1','t1'],[4,2,2,4,4]];
+		beat_template3=[['t2','t3','t2','t3'],[0.5,1,0.5,1]];
+		//beat_template1=[['k','hh','k','hh'],[1,1,1,1]];
+		//beat_template2=[['t1','s','s','t1','t1','s','s','t1','t1','t1','s'],[1,1,1,1,1,1,1,1,1,1,1]];
+		//beat_template3=[['t2','t3','t2','t3'],[1,1,1,1]];		
+		
+		laneArray1=laneCreator(beat_template1,10);
+		laneArray2=laneCreator(beat_template2,10);
+		laneArray3=laneCreator(beat_template3,0.2);
+		currentArray.push(laneArray1[0]);
+		currentArray.push(laneArray2[0]);
+		currentArray.push(laneArray3[0]);
+		
+		var firstquantizedTime= Math.ceil(context.currentTime + 0.5);
+		var firstincrementingTime=context.currentTime;	
+		console.log('firstquantizedTime:'+firstquantizedTime.toString()+', firstincrementingTime:'+firstincrementingTime.toString())
+		
+		for(let n of currentArray){
+			console.log('n in currentArray');
+			n.quantizedTime=firstquantizedTime;
+			n.incrementingTime=firstincrementingTime;
+			console.log('n.quantizedTime:'+n.quantizedTime.toString())
+			console.log('n.incrementingTime:'+n.incrementingTime.toString())
+		}
+		
+		
+		schedule();
+		console.log('handlePlay is calling timer worker');
+		timerWorker.postMessage("start");
+
+		document.getElementById('play').classList.add('playing');
+		document.getElementById('stop').classList.add('playing');
+		if (midiOut) {
+			// turn off the play button
+			midiOut.send( [0x80, 3, 32] );
+			// light up the stop button
+			midiOut.send( [0x90, 7, 1] );        
+		}
+	});
+}
+
 function handleStop(event) {
     timerWorker.postMessage("stop");
 
@@ -999,6 +1291,7 @@ function handleStop(event) {
     hideBeat( (rhythmIndex + 14) % 16 );
 
     rhythmIndex = 0;
+	currentArray=[];
 
     document.getElementById('play').classList.remove('playing');
     document.getElementById('stop').classList.remove('playing');
