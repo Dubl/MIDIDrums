@@ -10,8 +10,8 @@ var compressor;
 var masterGainNode;
 var effectLevelNode;
 var filterNode;
-var counter=40;
-var direction=1;
+var counter=0;
+var loopcounter=0;
 
 // Each effect impulse response has a specific overall desired dry and wet volume.
 // For example in the telephone filter, it's necessary to make the dry volume 0 to correctly hear the effect.
@@ -32,18 +32,21 @@ var kMaxSwing = .08;
 var currentKit;
 
 var currentArray=[];
+var activeArr=[];
+var masterLane;
+var currentmasterNode;
 var incrementingTime;
 var quantizedTime;
 //var currentNode;
 
 
-var beatReset = {"kitIndex":0,"effectIndex":0,"tempo":60,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
+var beatReset = {"kitIndex":0,"effectIndex":0,"tempo":240,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]};
 var beatDemo = [
-    {"kitIndex":13,"effectIndex":18,"tempo":60,"swingFactor":0,"effectMix":0.19718309859154926,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,2,0,2,2,0,0,0,0,0]},
-    {"kitIndex":4,"effectIndex":12,"tempo":60,"swingFactor":0,"effectMix":0.2,"kickPitchVal":0.46478873239436624,"snarePitchVal":0.45070422535211263,"hihatPitchVal":0.15492957746478875,"tom1PitchVal":0.7183098591549295,"tom2PitchVal":0.704225352112676,"tom3PitchVal":0.8028169014084507,"rhythm1":[2,1,0,0,0,0,0,0,2,1,2,1,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,1,1,0,2,0,0,0],"rhythm3":[0,1,2,1,0,1,2,1,0,1,2,1,0,1,2,1],"rhythm4":[0,0,0,0,0,0,2,1,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,0,0,0,0,0,2,1,2,1,0,0,0,0,0]},
-    {"kitIndex":2,"effectIndex":5,"tempo":60,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5211267605633803,"tom1PitchVal":0.23943661971830987,"tom2PitchVal":0.21126760563380287,"tom3PitchVal":0.2535211267605634,"rhythm1":[2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],"rhythm4":[1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,1,0,1,0,0,2,0,2,0,0,1,0,0,0]},
-    {"kitIndex":1,"effectIndex":4,"tempo":60,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.7887323943661972,"snarePitchVal":0.49295774647887325,"hihatPitchVal":0.5,"tom1PitchVal":0.323943661971831,"tom2PitchVal":0.3943661971830986,"tom3PitchVal":0.323943661971831,"rhythm1":[2,0,0,0,0,0,0,2,2,0,0,0,0,0,0,1],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,1,0,2,0,1,0,1,0,1,0,2,0,2,0],"rhythm4":[2,0,2,0,0,0,0,0,2,0,0,0,0,2,0,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,2,0,0,0,2,0,0,0,2,0,0,0,0,0,0]},
-    {"kitIndex":0,"effectIndex":1,"tempo":60,"swingFactor":0.5419847328244275,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[2,2,0,1,2,2,0,1,2,2,0,1,2,2,0,1],"rhythm2":[0,0,2,0,0,0,2,0,0,0,2,0,0,0,2,0],"rhythm3":[2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm5":[0,0,1,0,0,1,0,1,0,0,1,0,0,0,1,0],"rhythm6":[1,0,0,1,0,1,0,1,1,0,0,1,1,1,1,0]},
+    {"kitIndex":13,"effectIndex":18,"tempo":240,"swingFactor":0,"effectMix":0.19718309859154926,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,0,0,0,0,2,0,2,0,0,0,0,0,0,0],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,0,0,0,0,0,0,2,0,2,2,0,0,0,0,0]},
+    {"kitIndex":4,"effectIndex":12,"tempo":240,"swingFactor":0,"effectMix":0.2,"kickPitchVal":0.46478873239436624,"snarePitchVal":0.45070422535211263,"hihatPitchVal":0.15492957746478875,"tom1PitchVal":0.7183098591549295,"tom2PitchVal":0.704225352112676,"tom3PitchVal":0.8028169014084507,"rhythm1":[2,1,0,0,0,0,0,0,2,1,2,1,0,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,1,1,0,2,0,0,0],"rhythm3":[0,1,2,1,0,1,2,1,0,1,2,1,0,1,2,1],"rhythm4":[0,0,0,0,0,0,2,1,0,0,0,0,0,0,0,0],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,0,0,0,0,0,2,1,2,1,0,0,0,0,0]},
+    {"kitIndex":2,"effectIndex":5,"tempo":240,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5211267605633803,"tom1PitchVal":0.23943661971830987,"tom2PitchVal":0.21126760563380287,"tom3PitchVal":0.2535211267605634,"rhythm1":[2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0],"rhythm2":[0,0,0,0,2,0,0,0,0,0,0,0,2,0,0,0],"rhythm3":[0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0],"rhythm4":[1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],"rhythm5":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0],"rhythm6":[0,0,1,0,1,0,0,2,0,2,0,0,1,0,0,0]},
+    {"kitIndex":1,"effectIndex":4,"tempo":240,"swingFactor":0,"effectMix":0.25,"kickPitchVal":0.7887323943661972,"snarePitchVal":0.49295774647887325,"hihatPitchVal":0.5,"tom1PitchVal":0.323943661971831,"tom2PitchVal":0.3943661971830986,"tom3PitchVal":0.323943661971831,"rhythm1":[2,0,0,0,0,0,0,2,2,0,0,0,0,0,0,1],"rhythm2":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm3":[0,0,1,0,2,0,1,0,1,0,1,0,2,0,2,0],"rhythm4":[2,0,2,0,0,0,0,0,2,0,0,0,0,2,0,0],"rhythm5":[0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm6":[0,2,0,0,0,2,0,0,0,2,0,0,0,0,0,0]},
+    {"kitIndex":0,"effectIndex":1,"tempo":240,"swingFactor":0.5419847328244275,"effectMix":0.25,"kickPitchVal":0.5,"snarePitchVal":0.5,"hihatPitchVal":0.5,"tom1PitchVal":0.5,"tom2PitchVal":0.5,"tom3PitchVal":0.5,"rhythm1":[2,2,0,1,2,2,0,1,2,2,0,1,2,2,0,1],"rhythm2":[0,0,2,0,0,0,2,0,0,0,2,0,0,0,2,0],"rhythm3":[2,1,1,1,2,1,1,1,2,1,1,1,2,1,1,1],"rhythm4":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"rhythm5":[0,0,1,0,0,1,0,1,0,0,1,0,0,0,1,0],"rhythm6":[1,0,0,1,0,1,0,1,1,0,0,1,1,1,1,0]},
 ];
 
 
@@ -84,7 +87,7 @@ var mouseCaptureOffset = 0;
 var loopLength = 16;
 var rhythmIndex = 0;
 var kMinTempo = 53;
-var kMaxTempo = 180;
+var kMaxTempo = 360;
 var noteTime = 0.0;
 var loopnoteTime = 0.0;
 
@@ -94,18 +97,26 @@ var volumes = [0, 0.3, 1];
 
 var kitCount = 0;
 
-
+var realLoopbegtime;
+var realLoopendtime;
+var loopMSlength;
+var Allarr=[];
+var quantizedLoopbegtime;
+var quantizedLoopendtime
 
 class NoteNode {
 	constructor(drum,spaceafter,dv=2){
 		this.drumname=drum;
+		//console.log('drumname named:'+this.drumname);
 		this.spaceafter=spaceafter;
 		this._prev=0;
 		this._next=0;
 		this._end=false;
-		this._quantizedTime=0;
+		this._quantizedTime=2;
 		this._incrementingTime=0;
 		this._drumvolume=dv;
+		this._beginning=false;
+		this._activeslice=[];
 	}
 	
 	get dn() {
@@ -127,6 +138,16 @@ class NoteNode {
 	set next(newnext) {
 		this._next = newnext;   // validation could be checked here such as only allowing non numerical values
 	}
+	
+	get beginning() {
+		return this._beginning;
+	}
+
+	set beginning(torf) {
+		this._beginning = torf;   // validation could be checked here such as only allowing non numerical values
+	}
+	
+	
 	
 	get end() {
 		return this._end;
@@ -166,7 +187,9 @@ class NoteNode {
 			case 't2':
 				return currentKit.tom2;
 			case 't3':
-				return currentKit.tom3;				
+				return currentKit.tom3;	
+			case 'na':
+				return undefined;
 		
 		}
 
@@ -177,10 +200,42 @@ class NoteNode {
 
 	}	
 	
+	get drumtext() {
+		return this.drumname;
+
+	}		
 	set drumvolume(lvl) {
 		this._drumvolume=lvl;
 
 	}	
+	
+	get lane() {
+		return this._lane;
+
+	}	
+	
+	set lane(val) {
+		this._lane=val;
+
+	}	
+	
+	get chair() {
+		return this._chair;
+
+	}	
+	
+	set chair(val) {
+		this._chair=val;
+
+	}	
+	
+		get activeslice() {
+		return this._activeslice;
+	}
+
+	set activeslice(lanechairarray) {
+		this._activeslice = lanechairarray;   // validation could be checked here such as only allowing non numerical values
+	}
 	
 	get drumpitch() {
 		//console.log('this.drumname:'+this.drumname);
@@ -204,11 +259,49 @@ class NoteNode {
 	
 	
 	get noteMSlength() {
-		var secondsPerBeat = 60.0 / theBeat.tempo;
-		return (this.spaceafter*secondsPerBeat)/4;
+		var secondsPerBeat = Math.round((60.0 / theBeat.tempo)*100)/100;
+		var nmsl=Math.round(this.spaceafter*secondsPerBeat*100)/100;
+		//console.log('noteMSlength:'+nmsl.toString());
+		return nmsl;
 	}
 	
 	
+	get play(){
+		if (this.drumname!='na'){
+		playNote(this.drum, false, 0,0,-2,1,this._drumvolume*1.0,this.drumpitch,this.quantizedTime+1);
+		}
+	}
+	
+	isactive(lane,chair){
+		//console.log('in masternode, activeslice:'+JSON.stringify(this._activeslice[lane][chair]))
+		if (this._activeslice[lane][chair]=='a')
+			return true;
+		else
+			return false;
+	}
+
+
+	get oldisactive(){
+		var active=false;
+		//console.log('this.incrementingTime:'+this.incrementingTime.toString()+', this.quantizedTime:'+this.quantizedTime+', quantizedLoopendtime:'+quantizedLoopendtime);
+		var contextLooptime=Math.round(((Math.round(this.quantizedTime*100/100))%(Math.round(quantizedLoopendtime*100)/100))*100)/100;
+		//console.log(contextLooptime.toString()+' '+this.drumname);
+		var secondsPerBeat = Math.round((60.0 / theBeat.tempo)*100)/100;
+		var g=this.drumname;
+		var h=this.quantizedTime
+		Allarr[1][this._lane][this._chair].forEach( function (begend, index) {
+			console.log(g+' quantizedTime:'+h.toString()+' quantizedLoopendtime:'+quantizedLoopendtime.toString()+'  in isactive, contextLooptime is:'+contextLooptime.toString()+', begend[0] is:'+(Math.round((begend[0]*secondsPerBeat)*100)/100).toString()+', begend[1] is:'+(Math.round((begend[1]*secondsPerBeat)*100)/100).toString());
+			if (contextLooptime>=Math.round((begend[0]*secondsPerBeat)*100)/100 && contextLooptime < Math.round((begend[1]*secondsPerBeat)*100)/100){
+				console.log(g);
+				active=true;
+			}
+		});
+	//active=true;
+	return active;
+	
+
+	}
+		
 }
 
 
@@ -230,27 +323,99 @@ for(var tick=0; tick<bt[0].length; tick++)
 			}
 
 		}
+	else
+		lane[tick].beginning=true;
 		
 }
 
     return lane;
 }
 
-function timeofNode(nd) {
-	var secondsPerBeat = 60.0 / theBeat.tempo;
-	nd.spaceafter*secondsPerBeat;
-}	
 
-function timeofLane(ln){
-	var initialValue=0;
-	var ttime=ln.reduce(function(accumulator,currentValue) {
-		return accumulator+currentValue.lengthIntime;
-	},initialValue)
-  return ttime;
+function masterlaneCreator(bt)
+{//the argument "names" would be a two-dimensional array
+    var lane = [];
+for(var tick=0; tick<bt[0].length; tick++)
+{
+	
+
+	if (tick>0)
+		{
+
+			if (tick==bt[0].length-1)
+			{
+				lane[tick-1].next=lane[0];	
+			}
+			else
+			{
+				lane.push(new NoteNode('na', (bt[0][tick+1]-bt[0][tick])));
+				console.log('tick:'+tick.toString()+',lane[tick].activeslice:'+lane[tick].activeslice.toString()+', activeArr[1][tick]:'+JSON.stringify(activeArr[1][tick]));
+				lane[tick].activeslice=activeArr[1][tick];
+				lane[tick].prev=lane[tick-1];
+				lane[tick-1].next=lane[tick];
+				lane[tick].next=lane[0];
+				lane[0].prev=lane[tick];				
+			}
+
+		}
+	else
+	{
+		lane.push(new NoteNode('na', (bt[0][tick+1]-bt[0][tick])));
+		console.log('tick:'+tick.toString()+',lane[tick].activeslice:'+lane[tick].activeslice.toString()+', activeArr[1][tick]:'+JSON.stringify(activeArr[1][tick]));
+		lane[tick].activeslice=activeArr[1][tick];
+		lane[tick].beginning=true;
+	}
+}
+
+    return lane;
 }
 
 
 
+
+
+
+function loopMSlengthof(arr){
+	   var max=0;
+	   arr[1].forEach( function (lane,ind){
+		   lane.forEach( function (chair,ind){
+			chair.forEach( function (slot,ind){
+				if(slot[1]>max){
+					max=slot[1];
+				}
+					
+			})
+		   })
+		   
+	   })
+	   var secondsPerBeat = Math.round((60.0 / theBeat.tempo)*100)/100;
+	   return max*secondsPerBeat;
+	}
+
+
+//these functions are SUSPECT
+//function contextconverted (possiblevalfromactivearray) {
+	//ok so how do we get the right context. the right context will be the number times bpm + timeatbeginningofmasterloop... so need to come up with that... by resetting it every time masterloop gets back to beginning of loop
+	//so lets always make master loop the first node in the currentNodeArray
+    //if (typeof possiblevalfromactivearray == 'undefined')
+        //alert ('out of bounds baby');
+//}
+//
+//
+//function timeofNode(nd) {
+	//var secondsPerBeat = 60.0 / theBeat.tempo;
+	//nd.spaceafter*secondsPerBeat;
+//}	
+//
+//function timeofLane(ln){
+	//var initialValue=0;
+	//var ttime=ln.reduce(function(accumulator,currentValue) {
+		//return accumulator+currentValue.lengthIntime;
+	//},initialValue)
+  //return ttime;
+//}
+//
+//these functions were SUSPECT
 
 
 
@@ -602,7 +767,7 @@ function init() {
     updateControls();
 
     var timerWorkerBlob = new Blob([
-        "var timeoutID=0;console.log('    ------worker initialized');function schedule(){timeoutID=setTimeout(function(){postMessage('schedule'); schedule();},100);} onmessage = function(e) { console.log('----------onmessage in timer'); if (e.data == 'start') { if (!timeoutID) schedule();} else if (e.data == 'stop') {if (timeoutID) clearTimeout(timeoutID); timeoutID=0;};}"]);
+        "var timeoutID=0;console.log('    ------worker initialized');function schedule(){timeoutID=setTimeout(function(){postMessage('schedule'); schedule();},10);} onmessage = function(e) { console.log('----------onmessage in timer'); if (e.data == 'start') { if (!timeoutID) schedule();} else if (e.data == 'stop') {if (timeoutID) clearTimeout(timeoutID); timeoutID=0;};}"]);
 
     // Obtain a blob URL reference to our worker 'file'.
     var timerWorkerBlobURL = window.URL.createObjectURL(timerWorkerBlob);
@@ -771,18 +936,56 @@ function schedule() {
 	//	direction=direction*-1;
 	//}
 	
+
 	var currentTime = context.currentTime;	
+	    currentTime -= startTime;
 	//console.log(' -- currentTime:'+currentTime.toString()+'  --incrementingTime:'+incrementingTime.toString());
+	//console.log (' the real loop end time its not finding:'+realLoopendtime.toString());
+	//console.log(' quantizedLoopendtime:'+quantizedLoopendtime+', quantizedTime:'+quantizedTime.toString());
+	//if (quantizedLoopendtime<quantizedTime)
+	//console.log('loopMSlength is:'+loopMSlength.toString());
+	//{realLoopbegtime+=loopMSlength;
+	// realLoopendtime+=loopMSlength;
+	// quantizedLoopbegtime+=loopMSlength;
+	// quantizedLoopendtime+=loopMSlength;
+	//}
 	var newCurrentArray=[];
 	//console.log('there are '+currentArray.length.toString()+' values in currentArray');
+	//.. each node can reference how far it is from beginning of master loop. master loop is just a number times beat (8, 16, etc)
+	//, so if you're after the end of the loop, the loop time resets.
+	// then each node just checks if it's between 
+	counter+=1;
+	//console.log('currentmasterNode.incrementingTime vs currentTime:'+currentmasterNode.incrementingTime.toString()+' '+currentTime.toString()+'   '+JSON.stringify(currentmasterNode.activeslice))
+	if (currentTime>=currentmasterNode.incrementingTime && currentTime>0){
+		currentmasterNode.next.incrementingTime=currentmasterNode.incrementingTime+currentmasterNode.noteMSlength;
+		currentmasterNode.next.quantizedTime=currentmasterNode.quantizedTime+currentmasterNode.noteMSlength;
+		currentmasterNode=currentmasterNode.next;
+	}
+	
+	
 	for (let currentNode of currentArray){
-		//console.log('in currentArray, at '+currentTime.toString()+', incrementTime is '+currentNode.incrementingTime.toString());
+		
+		//console.log('in currentArray, currentNode:'+currentNode.lane.toString()+', chair:'+currentNode.chair.toString());
 		if (currentTime>currentNode.incrementingTime){
 				//console.log('current node incrementing at '+currentNode.incrementingTime.toString()+', playing '+currentNode.dn+' at '+currentNode.quantizedTime.toString());
 					//console.log('current node drum volume:'+currentNode.drumvolume.toString());
-					playNote(currentNode.drum, false, 0,0,-2, 1, currentNode.drumvolume * 1.0, currentNode.drumpitch, currentNode.quantizedTime);
-					//incrementingTime+=currentNode.noteMSlength;
-					//quantizedTime+=currentNode.noteMSlength;
+							//console.log(counter.toString());
+							//console.log('currentTime:'+currentTime.toString()+' incrementingTime:'+currentNode.incrementingTime.toString());
+
+					
+					//if currentNode.quantizedTime > contextconverted(AllArr[currentNode.lane][currentNode.chair][0]) && currentNode.quantizedTime < contextconverted(AllArr[currentNode.lane][currentNode.chair][1])
+					//currentNode.play;
+					//console.log('counter:'+counter.toString()+', lane '+currentNode.lane.toString()+', chair '+currentNode.chair.toString())
+					if (currentmasterNode.isactive(currentNode.lane,currentNode.chair)){
+						//console.log('                 counter:'+counter.toString()+', lane '+currentNode.lane.toString()+', chair '+currentNode.chair.toString()+' is active')
+					    //playNote(currentNode.drum, false, 0,0,-2, 1, currentNode.drumvolume * 1.0, currentNode.drumpitch, currentNode.quantizedTime);
+						//console.log('playing');
+						currentNode.play;
+					}
+					//else
+					//{ console.log('counter:'+counter.toString()+', lane '+currentNode.lane.toString()+', chair '+currentNode.chair.toString()+' is not active')}
+					incrementingTime+=currentNode.noteMSlength;
+					quantizedTime+=currentNode.noteMSlength;
 				if (currentNode.next){
 					currentNode.next.incrementingTime=currentNode.incrementingTime+currentNode.noteMSlength;
 					currentNode.next.quantizedTime=currentNode.quantizedTime+currentNode.noteMSlength;
@@ -799,28 +1002,15 @@ function schedule() {
 
 
 
+
 function realschedule() {
 
     var currentTime = context.currentTime;
-    // The sequence starts at startTime, so normalize currentTime so that it's 0 at the start of the sequence.
-	//// newCurrentArray=[];
-	////(const currentObject of mainObject.currentArray){
-	////    if (currentObject.endtime>currentTime+0.120){
-	////		contextPlayTime=currentObject.next.playtime+beginningofLoop;
-	////		playNote(currentObject.next.drum,false,0,0,-2,0.5,currentObject.next.volume,currentObject.next.pitch,contextPlayTime);
-	////			
-	////		newcurrentArray.push(currentObject.next);
-	////	    }
-	////    else {
-	////	  newCurrentArray.push(currentObject);
-	////	}
-	////}
-	////CurrentArray=newCurrentArray;
-	// startTime is when you hit play
+
     currentTime -= startTime;
-	console.log('schedule() called: rhythmIndex:'+rhythmIndex.toString()+' noteTime:'+noteTime.toString()+' currentTime:'+currentTime.toString());
+	//console.log('schedule() called: rhythmIndex:'+rhythmIndex.toString()+' noteTime:'+noteTime.toString()+' currentTime:'+currentTime.toString());
     while (noteTime < currentTime + 0.120) {
-		console.log(' --- inside loop: rhythmIndex:'+rhythmIndex.toString()+'  noteTime:'+noteTime.toString()+' currentTime:'+currentTime.toString());
+		//console.log(' --- inside loop: rhythmIndex:'+rhythmIndex.toString()+'  noteTime:'+noteTime.toString()+' currentTime:'+currentTime.toString());
         // Convert noteTime to context time.
         var contextPlayTime = noteTime + startTime;
         //search through the object.currentview and if any values are about to be done, switch to the new one and playNote it for the right time
@@ -1236,39 +1426,244 @@ playNote(currentKit.kickBuffer, false, 0,0,-2, 0.5, volumes[theBeat.rhythm1[rhyt
 function handlePlay(event) {
     noteTime = 0.0;
 	context.resume().then(function(){
-		startTime = Math.ceil(context.currentTime + 0.005);
+		startTime = 0;
+		
+		var firstquantizedTime= 0;
+		var firstincrementingTime=0;	
 
+
+		easybeat_template1=[['k','hh','k','hh'],[2,2,2,2]];
+		easybeat_template1b=[['k','hh','k','hh',],[1,1,1,1]];
 		
 		beat_template1=[['k','hh','k','hh'],[4,6,2,4]];
-		//beat_template2=[['t1','s','s','t1','t1','s','s','t1','t1','t1','s'],[4,2,2,4,4,2,2,4,4,2,2]];
 		beat_template2=[['t1','s','s','t1','t1'],[4,2,2,4,4]];
-		beat_template3=[['t2','t3','t2','t3'],[0.5,1,0.5,1]];
-		//beat_template1=[['k','hh','k','hh'],[1,1,1,1]];
-		//beat_template2=[['t1','s','s','t1','t1','s','s','t1','t1','t1','s'],[1,1,1,1,1,1,1,1,1,1,1]];
-		//beat_template3=[['t2','t3','t2','t3'],[1,1,1,1]];		
+		beat_template3=[['t2','t3','t2','t3'],[2,1,2,1]];
+		beat_template4=[['hh','hh','hh','hh'],[1,1,1,1]];
+		
+		
+		beat_template1b=[['k','hh','k','hh',],[3,3,1,2]];
+		beat_template2b=[['t1','s','s','t1','t1'],[2,3,3,2,2]];
+		beat_template3b=[['t2','t3','t2','t3'],[1,2,3,2]];
+	
+		
+		//
+		easylaneArray1=laneCreator(easybeat_template1,10);		
+		easylaneArray1b=laneCreator(easybeat_template1b,10);		
+		
 		
 		laneArray1=laneCreator(beat_template1,10);
-		laneArray2=laneCreator(beat_template2,10);
-		laneArray3=laneCreator(beat_template3,0.2);
-		currentArray.push(laneArray1[0]);
-		currentArray.push(laneArray2[0]);
-		currentArray.push(laneArray3[0]);
+		laneArray2=laneCreator(beat_template2,6);
+		laneArray3=laneCreator(beat_template3,0.6);
+		laneArray4=laneCreator(beat_template4,0.6);		
+		laneArray1b=laneCreator(beat_template1b,10);
+		laneArray2b=laneCreator(beat_template2b,6);
+		laneArray3b=laneCreator(beat_template3b,0.6);	
+
+		//wrappedLaneArray1=wrappedlaneCreator(beat_template1,10,1,2);
 		
-		var firstquantizedTime= Math.ceil(context.currentTime + 0.5);
-		var firstincrementingTime=context.currentTime;	
-		console.log('firstquantizedTime:'+firstquantizedTime.toString()+', firstincrementingTime:'+firstincrementingTime.toString())
 		
-		for(let n of currentArray){
-			console.log('n in currentArray');
-			n.quantizedTime=firstquantizedTime;
-			n.incrementingTime=firstincrementingTime;
-			console.log('n.quantizedTime:'+n.quantizedTime.toString())
-			console.log('n.incrementingTime:'+n.incrementingTime.toString())
+		//currentArray.push(laneArray1[0]);
+		//currentArray.push(laneArray2[0]);
+		//currentArray.push(laneArray3[0]);
+		
+		// first dim: nodes
+		//      second dim: lane
+		//      third dim: chair
+		// first dim: on-off for master track
+		//      second dim: lane
+		//      third dim: chair
+		//      fourth dim: on/off for chair in lane, in master track
+		//
+		// master track is full loop... when running through loop, check to see if chair in lane is active, by checking if chr-ln current time is in-between start/end in its index 
+		// it can be assumed that there will always be a master track.
+		// you are going to collect the nodes from the Allarr.. so collect one from the
+		//> Allarr[1][lane][chair]
+		    easyAllarr=[
+				     [ //[0] lane array
+					  [ //[0][0] lane array, lane 0
+					   easylaneArray1,easylaneArray1b //[0][0][0] and [0][0][1] lane array, lane 0, chairs 0 and 1... [0][0][0][0] is lane array, lane 0, chair 0, node 0
+					  ]	
+				     ],
+				     [ //[1] timepoint array
+					  [ //[1][0] timepoint array, lane 0
+					    [[0,16]],[[2,4],[6,8]] //[1][0][0] and [1][0][1] timepoint array, lane 0, chairs 0 and 1... [1][0][0][0] is the first begend of the first chair. [1][0][1][0] and [1][0][1][1] are the first and second windows of second chair. [1][0][1][0][0] is the beginning of the first window of the second chair of the first lane of the timepoint array
+					  ]
+				     ]
+				   ]
+				   
+		    Allarr=[
+				     [ //[0] lane array
+					  [ //[0][0] lane array, lane 0
+					   laneArray1,laneArray1b //[0][0][0] and [0][0][1] lane array, lane 0, chairs 0 and 1... [0][0][0][0] is lane array, lane 0, chair 0, node 0
+					  ],
+					  [ //[0][1] lane array, lane 1
+					   laneArray2,laneArray2b
+					  ],
+					  [
+					   laneArray3,laneArray3b
+					  ],	
+					  [
+					   laneArray4
+					  ]
+				     ],
+				     [
+					  [
+					    [[0,2],[4,6],[8,10],[12,14]],[[2,4],[6,8],[10,12],[14,16]]
+					  ],
+					  [
+					    [[0,4],[8,12]],[[0,8]]
+					  ],  
+					  [
+					    [[0,8]],[[8,16]]
+					  ],
+					  [
+						[[0,13]]
+					  ]
+				     ]
+				   ]				   
+				   
+				   
+				   
+				   
+		for (var ln = 0; ln < Allarr[0].length; ln++) {
+			//console.log('adding');
+
+			for (var chr = 0; chr < Allarr[0][ln].length; chr++) {
+			  currentArray.push(Allarr[0][ln][chr][0]);
+			  Allarr[0][ln][chr].forEach(function (nnode, index) {
+				 nnode.lane=ln;
+				 nnode.chair=chr;
+				 nnode.quantizedTime=firstquantizedTime;
+			  });
+			}
 		}
 		
+		//tp ln ch wn  be
+		//[1][0][1][0][0] is the first value of the first begend of the second chair of the first lane of the timepoint array
+		console.log('Allarr[1]:'+Allarr[1].toString());
+		console.log('Allarr[1][0]:'+Allarr[1][0].toString());
+		console.log('Allarr[1][0][0]:'+Allarr[1][0][0].toString());
+		console.log('Allarr[1][0][0][0]:'+Allarr[1][0][0][0].toString());
+		console.log('Allarr[1][0][0][0][0]:'+Allarr[1][0][0][0][0].toString());
 		
+		var timepointset = new Set();
+		Allarr[1].forEach(function(lane,lind){
+			lane.forEach(function(chair,cind){
+				chair.forEach(function(windo,wind){
+						timepointset.add(windo[0]);
+						timepointset.add(windo[1]);
+				});
+			});
+		});
+		
+		var timepointArr=Array.from(timepointset).sort(function(a, b){return a - b});
+		
+		console.log('timepointarray:'+timepointArr.toString());
+		
+
+		activeArr.push(timepointArr);
+		var subactiveArr=[];
+		for (var timepoint=0; timepoint<timepointArr.length; timepoint++){
+			lnArr=[];
+			for (var ln=0; ln<Allarr[0].length; ln++) {
+				chrArr=[];
+				for (var chr=0; chr<Allarr[0][ln].length; chr++){
+					chrArr.push('n');
+				}
+				lnArr.push(chrArr);
+			}
+			subactiveArr.push(lnArr);
+		}
+		activeArr.push(subactiveArr);
+		
+		
+		console.log('activeArr:'+JSON.stringify(activeArr));
+		
+//		activeArr.forEach(function(timepoint,tind){
+//			output=''
+//			timepoint.forEach(function(lane,lind){
+//				lane.forEach(function(chair,cind){
+//					
+//			for (var ln=0; ln<Allarr[1].length; ln++) {
+//				for (var chr=0; chr<Allarr[1][1].length; chr++){
+//					chrArr.push('n');
+//				}
+//			}
+//		}	
+var nuactivarr=[
+					[
+						0,
+						2,
+						4,
+						6,
+						8
+					],
+					[ //activeArr[1]
+						[  //activeArr[1][0]  timepoint
+							[ //activeArr[1][0][0] lane
+								"n","n" //activeArr[1][0][0][0] and activeArr[1][0][0][1] chair 1 and 2
+							]  
+						],
+						[["n","n"]],
+						[["n","n"]],
+						[["n","n"]],
+						[["n","n"]]
+					]
+				]
+
+		
+		//for (var timepoint=0; timepoint<activeArr[0].length; timepoint++){ //for each timepoint
+			for (var lane=0; lane<Allarr[1].length; lane++){
+				for (var chair=0; chair<Allarr[1][lane].length; chair++){
+					for (var windo=0; windo<Allarr[1][lane][chair].length; windo++){
+					//console.log('windo[0]:'+windo[0].toString()+', windo[1]:'+windo[1].toString())
+						var windoo=Allarr[1][lane][chair][windo][0];
+						var windoi=Allarr[1][lane][chair][windo][1];
+						for (var begend=windoo; begend<windoi; begend++){
+							console.log('begend:'+begend.toString());
+							if (timepointArr.includes(begend)){
+								console.log('timepointArr.indexOf(begend):'+timepointArr.indexOf(begend).toString());
+								console.log('activeArr[1][timepointArr.indexOf(begend)][lane][chair]:'+activeArr[1][timepointArr.indexOf(begend)][lane][chair].toString());
+							activeArr[1][timepointArr.indexOf(begend)][lane][chair]='a';
+							}
+						};
+					};
+				};
+			};
+		
+		console.log('activeArr:'+JSON.stringify(activeArr));
+		
+		masterLane=masterlaneCreator(activeArr);
+		currentmasterNode=masterLane[0];
+		currentmasterNode.incrementingTime=currentmasterNode.noteMSlength;
+		
+		realLoopbegtime=firstincrementingTime;
+		loopMSlength=loopMSlengthof(Allarr);
+		realLoopendtime=firstincrementingTime+loopMSlength;
+		//console.log('realLoopendtime='+realLoopendtime.toString());
+		quantizedLoopbegtime=firstquantizedTime;		
+		quantizedLoopendtime=loopMSlength;
+		//console.log('currentArray length is '+currentArray.length.toString());
+		//currentArray.forEach(function(val,ind){
+		//	console.log('vals are:'+val.drumtext);
+		//})
+		masterLane.forEach(function(nod,ind){
+		console.log('currentmasterNode time is:'+nod.incrementingTime.toString());
+		});
+
+		//console.log('firstquantizedTime:'+firstquantizedTime.toString()+', firstincrementingTime:'+firstincrementingTime.toString())
+		
+		//for(let n of currentArray){
+		//	console.log('n in currentArray');
+		//	n.quantizedTime=firstquantizedTime;
+		//	n.incrementingTime=firstincrementingTime;
+		//	console.log('n.quantizedTime:'+n.quantizedTime.toString())
+		//	console.log('n.incrementingTime:'+n.incrementingTime.toString())
+		//}
+		
+		//console.log('schedule....');
 		schedule();
-		console.log('handlePlay is calling timer worker');
+		//console.log('handlePlay is calling timer worker');
 		timerWorker.postMessage("start");
 
 		document.getElementById('play').classList.add('playing');
@@ -1284,7 +1679,7 @@ function handlePlay(event) {
 
 function handleStop(event) {
     timerWorker.postMessage("stop");
-
+	currentArray=[];
     var elOld = document.getElementById('LED_' + (rhythmIndex + 14) % 16);
     elOld.src = 'images/LED_off.png';
 
